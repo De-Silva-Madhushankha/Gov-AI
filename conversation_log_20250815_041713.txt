@@ -1,0 +1,25 @@
+Sri Lankan Government Services - Conversation Log
+==================================================
+Date: 2025-08-15 04:17:13
+==================================================
+
+You: What are the required documnets for a passort
+Bot: **Government Services Assistant**
+
+I'm here to help with Sri Lankan government services information.
+
+**I can help you with:**
+• Required documents for services
+• Application processes
+• Department contact information
+• General service guidance
+
+**For specific queries, try:**
+• "What documents do I need for a passport?"
+• "How to apply for driving license?"
+• "Contact information for registrar office?"
+
+**Need more help?** Call 1919 (Government Information Center)
+
+==================================================
+End of Conversation
