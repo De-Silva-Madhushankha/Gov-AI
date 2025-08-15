@@ -79,23 +79,23 @@ def classify_intent(state: AgentState) -> AgentState:
         Analyze the following user query about Sri Lankan government services and classify it:
 
         Categories:
+        - greeting: Greetings like hello, hi, good morning, how are you, etc.
+        - casual_chat: Casual conversation, small talk, personal questions, weather, etc.
         - sql_query: User is asking for specific data that requires database lookup (documents for services, service details, department info, etc.)
         - procedural_info: User asking about processes, general guidance, how-to information
         - status_check: User wants to check application/document status (requires authentication)
-        - general: General questions about government services
+        - general_gov: General questions about government services that don't require database lookup
+        - non_gov: Questions about topics not related to government services
 
         User query: "{user_input}"
 
-        Examples of sql_query:
-        - "What documents do I need for passport?"
-        - "Which services does Health Department offer?"
-        - "Show me all available services"
-        - "What are the requirements for driving license?"
-
-        Examples of procedural_info:
-        - "How do I apply for passport?"
-        - "What are the office hours?"
-        - "How to file a complaint?"
+        Examples by category:
+        greeting: "hello", "hi", "good morning", "how are you"
+        casual_chat: "what's the weather like", "tell me a joke", "what's your name"
+        sql_query: "What documents do I need for passport?", "Which services does Health Department offer?"
+        procedural_info: "How do I apply for passport?", "What are the office hours?"
+        general_gov: "What is a government service?", "Who can help me?"
+        non_gov: "What's 2+2?", "Tell me about cooking", "What's the capital of France?"
 
         Respond with only the category name.
         """
@@ -103,14 +103,96 @@ def classify_intent(state: AgentState) -> AgentState:
         response = llm.generate_content(prompt)
         intent = response.text.strip().lower()
         
-        valid_intents = ["sql_query", "procedural_info", "status_check", "general"]
+        valid_intents = ["greeting", "casual_chat", "sql_query", "procedural_info", "status_check", "general_gov", "non_gov"]
         if intent not in valid_intents:
-            intent = "general"
+            intent = "general_gov"
             
     except Exception as e:
-        intent = "general"
+        intent = "general_gov"
     
     return {**state, "intent": intent}
+
+def handle_greeting(state: AgentState) -> AgentState:
+    """Handle greetings and initial interactions"""
+    user_input = state["user_input"].lower()
+    
+    greetings = {
+        "hello": "Hello! Welcome to Sri Lankan Government Services Assistant. How can I help you today?",
+        "hi": "Hi there! I'm here to help you with government services. What do you need assistance with?",
+        "good morning": "Good morning! I'm your government services assistant. How may I assist you today?",
+        "good afternoon": "Good afternoon! Welcome to Sri Lankan Government Services. What can I help you with?",
+        "good evening": "Good evening! I'm here to help you with any government service inquiries. How can I assist you?",
+        "how are you": "I'm doing well, thank you! I'm here and ready to help you with any government service questions you might have. How can I assist you today?",
+        "what's up": "Hello! I'm here to help you with Sri Lankan government services. What information are you looking for today?",
+        "hey": "Hey! Welcome to the Sri Lankan Government Services Assistant. How can I help you today?"
+    }
+    
+    # Check for specific greetings
+    for greeting_key, greeting_response in greetings.items():
+        if greeting_key in user_input:
+            response = f"{greeting_response}\n\nI can help you with:\n• Required documents for services\n• Department contact information\n• Application procedures\n• Office hours and locations\n\nJust ask me anything about government services!"
+            return {**state, "response": response}
+    
+    # Default greeting response
+    response = """Hello! Welcome to Sri Lankan Government Services Assistant. 
+
+I'm here to help you with:
+• Finding required documents for services
+• Getting department contact information  
+• Understanding application procedures
+• Learning about office hours and locations
+
+How can I assist you today?"""
+    
+    return {**state, "response": response}
+
+def handle_casual_chat(state: AgentState) -> AgentState:
+    """Handle casual conversation while redirecting to government services"""
+    user_input = state["user_input"].lower()
+    
+    if "name" in user_input:
+        response = """I'm the Sri Lankan Government Services Assistant! You can call me your helpful government guide.
+
+I'm here to help you navigate government services and find the information you need. What government service can I help you with today?"""
+    
+    elif "weather" in user_input:
+        response = """I don't have weather information, but I can help you with something even more useful - government services!
+
+For weather updates, try checking local news or weather apps. Meanwhile, is there any government service you need help with?"""
+    
+    elif "joke" in user_input:
+        response = """Here's one for you: Why did the citizen visit the government office? To get their paperwork in order!
+
+Speaking of paperwork, I can help you understand what documents you need for any government service. What are you looking to apply for?"""
+    
+    elif "thank you" in user_input or "thanks" in user_input:
+        response = """You're very welcome! I'm always happy to help with government services.
+
+Is there anything else you'd like to know about government services or procedures?"""
+    
+    else:
+        response = """That's an interesting question! While I focus on helping with Sri Lankan government services, I'm always here to chat.
+
+Is there any government service you need assistance with? I can help you find required documents, contact information, or guide you through procedures."""
+    
+    return {**state, "response": response}
+
+def handle_non_government(state: AgentState) -> AgentState:
+    """Handle non-government related questions"""
+    response = """I specialize in Sri Lankan government services and can only provide information about government-related topics to ensure accuracy.
+
+For other questions, I'd recommend checking reliable sources or specialized websites.
+
+However, I'm here to help with:
+• Government service requirements
+• Department contact information
+• Application procedures
+• Document requirements
+• Office hours and locations
+
+Is there any government service you need help with?"""
+    
+    return {**state, "response": response}
 
 def generate_sql_query(state: AgentState) -> AgentState:
     """Generate SQL query based on user input using AI"""
@@ -263,17 +345,22 @@ Alternative ways to get help:
         return {**state, "response": response}
     
     if not sql_result:
-        response = """I couldn't find specific information for your query.
+        response = """I couldn't find specific information for your query in our database.
+
+This might mean:
+• The service you're asking about isn't available in our current database
+• The service name might be different than expected
+• The information might not be digitally available yet
 
 Try asking about:
 • "What documents do I need for passport application?"
 • "What services does the Health Department offer?"
 • "Show me all available government services"
-• "What are the requirements for driving license?"
 
-Need immediate help?
+For the most accurate and up-to-date information:
 • Call 1919 (Government Information Center)
-• Visit www.gov.lk for comprehensive information"""
+• Visit www.gov.lk
+• Contact the relevant department directly"""
         return {**state, "response": response}
     
     try:
@@ -290,11 +377,12 @@ Need immediate help?
         3. Include contact information (email, phone) when available
         4. Add helpful tips or next steps for the user
         5. Keep it concise but informative
-        6. Use appropriate emojis to make it more engaging
+        6. Do not use any emojis in the response
         7. Format as plain text (not markdown)
         8. If showing document requirements, clearly mark mandatory vs optional
         9. Include department information when relevant
         10. End with helpful contact information or next steps
+        11. IMPORTANT: Only use information from the provided query results - do not add any external information
 
         Make it sound professional but friendly, like a helpful government service representative.
         """
@@ -491,6 +579,9 @@ workflow = StateGraph(AgentState)
 
 # Add nodes
 workflow.add_node("classify", classify_intent)
+workflow.add_node("greeting", handle_greeting)
+workflow.add_node("casual_chat", handle_casual_chat)
+workflow.add_node("non_government", handle_non_government)
 workflow.add_node("generate_sql", generate_sql_query)
 workflow.add_node("execute_sql", execute_sql_query)
 workflow.add_node("format_response", format_sql_response)
@@ -506,10 +597,13 @@ workflow.add_conditional_edges(
     "classify",
     route_intent,
     {
+        "greeting": "greeting",
+        "casual_chat": "casual_chat",
+        "non_government": "non_government",
         "sql_query": "generate_sql",
         "procedural_info": "procedural_info",
         "status_check": "status_check",
-        "general": "procedural_info"
+        "general_gov": "procedural_info"
     }
 )
 
@@ -518,6 +612,9 @@ workflow.add_edge("generate_sql", "execute_sql")
 workflow.add_edge("execute_sql", "format_response")
 
 # End points
+workflow.add_edge("greeting", END)
+workflow.add_edge("casual_chat", END)
+workflow.add_edge("non_government", END)
 workflow.add_edge("format_response", END)
 workflow.add_edge("procedural_info", END)
 workflow.add_edge("status_check", END)
@@ -535,7 +632,7 @@ if __name__ == "__main__":
     print("   • Service procedures and requirements")
     print("   • Office hours and locations")
     print("=" * 55)
-    print("Just ask me your question in plain English!")
+    print("Feel free to greet me or ask any government service question!")
     print("Type 'exit' when you're done.\n")
     
     while True:
@@ -545,15 +642,15 @@ if __name__ == "__main__":
             print("\nThank you for using Sri Lankan Government Services Assistant!")
             print("Remember, you can always call 1919 for immediate assistance.")
             print("Visit www.gov.lk for online services.")
-            print("Have a great day! 🇱🇰")
+            print("Have a great day!")
             break
         
         if not user_input:
-            print("🤖 Assistant: I'm here to help! Please ask me about any government service you need information about.\n")
+            print("🤖 Assistant: I'm here to help! Feel free to say hello or ask me about any government service.\n")
             continue
         
         try:
-            print("Looking up information for you...")
+            print("Processing your message...")
             
             result = agent.invoke({
                 "user_input": user_input,
