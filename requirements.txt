@@ -1,0 +1,7 @@
+langgraph
+langchain
+langchain-community
+langchain-ollama
+supabase
+google-generativeai
+python-dotenv
