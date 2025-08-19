@@ -166,7 +166,7 @@ def extract_service_name(user_input: str) -> Optional[str]:
     """Extract service name from user input"""
     user_input = user_input.lower()
     
-    # Common service keywords that might be in your database
+    # Common service keywords 
     service_keywords = [
         "passport", "driving license", "license", "birth certificate", 
         "marriage certificate", "business registration", "tax clearance",
@@ -362,7 +362,7 @@ Emergency Issues: Contact department head directly"""
 
 def provide_general_info(state: AgentState) -> AgentState:
     """Provide general information about government services"""
-    response = """🇱🇰 Sri Lankan Government Services Portal
+    response = """Sri Lankan Government Services Portal
 
 Popular Services:
 • Passport applications
@@ -439,7 +439,6 @@ Need more help? Call 1919 (Government Information Center)"""
     
     return {**state, "response": response}
 
-# Enhanced Workflow
 workflow = StateGraph(AgentState)
 
 # Add nodes
